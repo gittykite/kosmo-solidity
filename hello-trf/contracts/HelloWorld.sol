@@ -19,3 +19,12 @@ contract HelloWorld {
         return greeting;
     }
 }
+
+contract HelloThere{
+
+    string public greeting = "Hello, there!";
+
+    function say() public view returns(string memory){
+        return greeting;
+    }
+}
