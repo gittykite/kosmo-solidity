@@ -14,6 +14,7 @@ import './css/bootstrap.min.css';
 import './css/style.css';
 
 
+
 class Main extends Component {
 
     state = {
@@ -28,17 +29,53 @@ class Main extends Component {
     };
 
     async componentDidMount() {
-      //TODO
+      // code for component onload
+      try{
+        const web3 = await getWeb3();
+        const accounts = await web3.eth.getAccounts();
+        const networkId = await web3.eth.net.getId();
 
+        const deployedNetwork = SimpleStorage.networks[networkId];
+        const instance = new web3.eth.Contract(
+          SimpleStorage.abi,
+          deployedNetwork && deployedNetwork.address,
+        );
+
+        // add event handler
+        instance.events.Change()
+          .on("data", (event)=>{
+            this.handleEvent(event);
+          })  
+          .on("error", (err) => {console.log(err)});
+
+        // set state value for this component
+        this.setState({web3, accounts, networkId, contract: instance});
+
+      }catch (error){
+          alert("Failed to load web3, accounts or network");
+          console.log(error);
+      }
     }
+
+    handleEvent = (event) =>{
+      this.setState({ pending: !this.state.pending
+                      , storedData: event.returnValues.newVal });
+    }    
 
     handleSend = async () => {
-        //TODO
-
-
+      // transfer
+      const {accounts, contract}= this.state;
+      if(this.state.val > 0){
+        this.setState({pending: !this.state.pending});
+        try{
+          // call send transaction
+          await contract.methods.set(this.state.val).send({from:accounts[0]});
+        }catch(err){
+          // stop loading spinner
+          this.setState({pending: false});
+        }
+      }
     }
-
-
 
 
     handleChange = (e) => {
@@ -69,6 +106,7 @@ class Main extends Component {
                         <div className="button">
                             <ButtonToolbar>
                                 <ButtonGroup justified>
+                                    {/* Send when click event occurs */}
                                     <Button href="#" bsStyle="primary" bsSize="large" block onClick={this.handleSend}>
                                         Send via Metamask
                                     </Button>
@@ -93,7 +131,9 @@ class Main extends Component {
                                     </p>
                                 </div>
                                 <div style={{display:"inline-block", float:"right"}}>
-                                    Loading Spinner
+                                  {/* Loading Spinner */}
+                                  {/* https://mhnpd.github.io/react-loader-spinner/?path=/story/loader--oval */}
+                                  {this.state.pending?<Loader type="Oval" color="#BBBBBB" height="50" width="50"/>: null}
                                 </div>
                             </Panel.Body>
                         </Panel>
